@@ -1,0 +1,43 @@
+name: 網站問題 Website problem
+description: A page doesn't load, a link or image is broken, or text displays wrongly. 網頁無法開啟、連結或圖片失效、文字顯示錯誤。
+title: "[Website problem] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This report is public.** Please don't include names, contact details or other personal information.
+        For corrections, removal requests, copyright or anything sensitive, email **info@hkalliance-archive.org** instead.
+
+        **此回報會公開。** 請勿填寫姓名、聯絡方式或其他個人資料。更正、移除要求、版權或任何敏感事宜，請電郵 **info@hkalliance-archive.org**。
+  - type: input
+    id: address
+    attributes:
+      label: Page address 網頁地址
+      description: Copy it from the browser's address bar. 從瀏覽器網址列複製。
+      placeholder: https://hkalliance-archive.org/...
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is wrong? 出現甚麼問題？
+      options:
+        - The page doesn't load 網頁無法開啟
+        - A link goes to the wrong place or doesn't work 連結錯誤或失效
+        - An image is missing or broken 圖片缺失或損壞
+        - Chinese text displays wrongly 中文顯示錯誤
+        - Something else 其他
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened? 詳細情況
+      description: What you clicked, what you expected, and what you saw instead. 你點擊了甚麼、預期看到甚麼、實際看到甚麼。
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Browser and device (optional) 瀏覽器及裝置（選填）
+      placeholder: e.g. Safari on iPhone, Chrome on Windows

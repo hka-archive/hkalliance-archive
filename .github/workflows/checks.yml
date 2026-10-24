@@ -1,0 +1,36 @@
+# Runs on every push and pull request: the health check script must parse and the catalogue must be
+# complete and well-formed. Needs no secrets.
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"   # the oldest version the README promises
+
+      - name: Health check script compiles
+        run: python -m py_compile tools/healthcheck.py
+
+      - name: Catalogue is complete and well-formed
+        run: |
+          python - <<'PY'
+          import csv, json
+          rows = json.load(open("catalogue/posts.json", encoding="utf-8"))
+          posts = [r for r in rows if r["type"] == "post"]
+          assert len(posts) >= 370, f"only {len(posts)} posts in posts.json"
+          assert all(r["date"] and r["title"] and r["archive_path"] for r in rows), "row with missing fields"
+          csv_rows = list(csv.DictReader(open("catalogue/posts.csv", encoding="utf-8-sig")))
+          assert len(csv_rows) == len(rows), "posts.csv and posts.json disagree"
+          print(f"{len(posts)} posts, {len(rows) - len(posts)} pages")
+          PY

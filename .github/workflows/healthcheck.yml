@@ -1,0 +1,64 @@
+# Weekly check of the live archive. On failure it opens (or comments on) a public issue titled
+# "Health check failed", which also emails the repository's watchers; when the site works again the
+# issue is closed. The payment details to look for come from the HKA_PAYMENT_PATTERNS secret, so they
+# never appear in this public repository.
+name: Health check
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"   # Mondays 03:17 UTC (11:17 in Hong Kong)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: write   # to keep this scheduled workflow enabled (see the last step)
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://hkalliance-archive.org/' }}
+      TITLE: Health check failed
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check the live site
+        env:
+          HKA_PAYMENT_PATTERNS: ${{ secrets.HKA_PAYMENT_PATTERNS }}
+        run: |
+          set -o pipefail
+          python tools/healthcheck.py "$SITE_URL" 2>&1 | tee report.txt
+
+      - name: Open or update an issue
+        if: failure()
+        run: |
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fence=$(printf '\140\140\140')   # a Markdown code fence
+          body=$(printf 'Run: %s\n\n%s\n%s\n%s\n' "$run_url" "$fence" "$(cat report.txt 2>/dev/null)" "$fence")
+          number=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "$TITLE" --body "$body"
+          fi
+
+      - name: Close the issue once the site works again
+        if: success()
+        run: |
+          number=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number')
+          if [ -n "$number" ]; then
+            gh issue close "$number" --comment "All checks passed again: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi
+
+      # GitHub disables scheduled workflows in public repositories after 60 days without activity.
+      # Re-enabling it each run is meant to prevent that; if it is ever disabled anyway, re-enable it
+      # under Actions -> Health check.
+      - name: Keep the weekly schedule enabled
+        if: always()
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/healthcheck.yml/enable" || true
