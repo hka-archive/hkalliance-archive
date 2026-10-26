@@ -6,7 +6,7 @@ name: Health check
 
 on:
   schedule:
-    - cron: "17 3 * * 1"   # Mondays 03:17 UTC (11:17 in Hong Kong)
+  #  - cron: "17 3 * * 1"   # Mondays 03:17 UTC (11:17 in Hong Kong)
   workflow_dispatch:
 
 permissions:
